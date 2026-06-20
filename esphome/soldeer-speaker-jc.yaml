@@ -40,8 +40,9 @@ display:
     address: 0x3C
     rotation: 0
     lambda: |-
-      it.print(0, 0, id(font_small), "ESPHome");
-      it.print(0, 15, id(font_small), "JC speler");
+      it.print(45, 0, id(font_small), "ESPHome");
+      it.print(0, 20, id(font_small), "JC speler");
+      it.print(45, 50, id(font_small), "v1.0.1");
       // voeg status/streamnaam etc. dynamisch toe
 
 font:
