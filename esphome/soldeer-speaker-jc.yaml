@@ -85,7 +85,53 @@ switch:
       mode:
         output: true
     restore_mode: RESTORE_DEFAULT_ON
+
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      inverted: false
+    name: "Tip toets Beneden"
+    filters:
+      - delayed_off: 10ms
+    icon: "mdi:format-vertical-align-bottom"
     
+  - platform: gpio
+    pin:
+      number: GPIO12
+      inverted: false
+    name: "Tip toets Rechts"
+    filters:
+      - delayed_off: 10ms
+    icon: "mdi:arrow-collapse-right"
+    
+  - platform: gpio
+    pin:
+      number: GPIO14
+      inverted: false
+    name: "Tip toets Links"
+    filters:
+      - delayed_off: 10ms
+    icon: "mdi:arrow-collapse-left"
+    
+  - platform: gpio
+    pin:
+      number: GPIO13
+      inverted: false
+    name: "Tip toets Midden"
+    filters:
+      - delayed_off: 10ms
+    icon: "mdi:image-filter-center-focus"
+    
+  - platform: gpio
+    pin:
+      number: GPIO15
+      inverted: false
+    name: "Tip toets Boven"
+    filters:
+      - delayed_off: 10ms    
+    icon: "mdi:format-vertical-align-top"    
 # als ik dit aanzet komt hij wel online in sendspin maar geen output
 
 
