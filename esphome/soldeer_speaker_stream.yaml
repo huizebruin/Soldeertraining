@@ -1,0 +1,205 @@
+esphome:
+  name: soldeer-speaker-jc-stream
+  friendly_name: Soldeer Speaker JC Stream
+
+esp32:
+  variant: esp32
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+    advanced:
+      sram1_as_iram: true
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: "kLmKfbpU33eRvc+AvZ799ItpbFZ+L4kiCisbSxAH2yQ="
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "soldeer-speaker Fallback Hotspot"
+    password: "tFWib7mD95zI"
+
+captive_portal:
+
+# On boot set visible global and log to prove new firmware is running
+on_boot:
+  then:
+    - globals.set:
+        id: last_button
+        value: '"Firmware stream v1 gestart"'
+    - logger.log: "on_boot: set last_button to Firmware stream v1 gestart"
+
+# Global used to show last pressed button on the display
+globals:
+  - id: last_button
+    type: std::string
+    initial_value: '"-"'
+
+# I2C config (primary)
+i2c:
+  sda: GPIO33
+  scl: GPIO32
+  scan: true
+  id: i2c_bus
+  # frequency: 100000  # try 100k if you have issues
+
+font:
+  - file: "fonts/Arial.ttf"
+    id: font_small
+    size: 12
+  - id: font_1
+    file:
+      type: gfonts
+      family: Roboto
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    address: 0x3C
+    rotation: 0
+    id: oled_display
+    lambda: |-
+      it.fill(COLOR_OFF);
+      it.print(0, 0, id(font_small), "ESPHome JC speler");
+      it.print(0, 14, id(font_small), "Laatste knop:");
+      it.print(0, 30, id(font_small), id(last_button).c_str());
+      // optional: show station name if you have a radio_player
+      // if (radio_player != nullptr) it.print(0, 50, id(font_small), radio_player->get_current_station_name().c_str());
+
+# I2S output (LRCK/BCLK pins)
+i2s_audio:
+  - id: i2s_output
+    i2s_lrclk_pin: GPIO25
+    i2s_bclk_pin: GPIO26
+
+# PCM5122 DAC connected on the I2C bus
+audio_dac:
+  - platform: pcm5122
+    i2c_id: i2c_bus
+    id: pcm5122_dac
+    address: 0x4C
+
+speaker:
+  - platform: i2s_audio
+    i2s_audio_id: i2s_output
+    id: speaker_id
+    i2s_dout_pin: GPIO27
+    dac_type: external
+    audio_dac: pcm5122_dac
+
+# Use PCM5122 GPIO4 to control an external amplifier enable pin
+switch:
+  - platform: gpio
+    name: "Amplifier Enable"
+    pin:
+      pcm5122: pcm5122_dac
+      number: 4
+      mode:
+        output: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      inverted: false
+    name: "Tip toets Beneden"
+    filters:
+      - delayed_off: 10ms
+    on_press:
+      - globals.set:
+          id: last_button
+          value: '"Beneden"'
+      - logger.log: "Button Beneden pressed"
+    icon: "mdi:format-vertical-align-bottom"
+
+  - platform: gpio
+    pin:
+      number: GPIO12
+      inverted: false
+    name: "Tip toets Rechts"
+    filters:
+      - delayed_off: 10ms
+    on_press:
+      - globals.set:
+          id: last_button
+          value: '"Rechts"'
+      - logger.log: "Button Rechts pressed"
+    icon: "mdi:arrow-collapse-right"
+
+  - platform: gpio
+    pin:
+      number: GPIO14
+      inverted: false
+    name: "Tip toets Links"
+    filters:
+      - delayed_off: 10ms
+    on_press:
+      - globals.set:
+          id: last_button
+          value: '"Links"'
+      - logger.log: "Button Links pressed"
+    icon: "mdi:arrow-collapse-left"
+
+  - platform: gpio
+    pin:
+      number: GPIO13
+      inverted: false
+    name: "Tip toets Midden"
+    filters:
+      - delayed_off: 10ms
+    on_press:
+      - globals.set:
+          id: last_button
+          value: '"Midden"'
+      - logger.log: "Button Midden pressed"
+    icon: "mdi:image-filter-center-focus"
+
+  - platform: gpio
+    pin:
+      number: GPIO15
+      inverted: false
+    name: "Tip toets Boven"
+    filters:
+      - delayed_off: 10ms
+    on_press:
+      - globals.set:
+          id: last_button
+          value: '"Boven"'
+      - logger.log: "Button Boven pressed"
+    icon: "mdi:format-vertical-align-top"
+
+# Optional: a simple text_sensor to surface the last button in Home Assistant
+text_sensor:
+  - platform: template
+    name: "Radio Last Button"
+    id: radio_last_button_text
+    lambda: |-
+      return { id(last_button).c_str() };
+
+# External component and media source for streaming (community component)
+external_components:
+  - source: github://pr#14933
+    components: [const, media_source, sendspin]
+    refresh: 1h
+
+media_source:
+  - platform: sendspin
+    id: sendspin_source
+
+media_player:
+  - platform: speaker_source
+    id: sendspin_media_player
+    name: Sendspin Media Player
+    media_pipeline:
+      speaker: speaker_id
+      sources:
+        - sendspin_source
